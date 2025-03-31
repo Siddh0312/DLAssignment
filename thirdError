@@ -1,0 +1,16 @@
+
+[2025-03-31T12:39:29.922Z] Worker failed to index functions
+[2025-03-31T12:39:29.933Z] Result: Failure
+Exception: ValueError: Could not find top level function app instances in function_app.py.
+Stack:   File "C:\Users\Administrator\AppData\Roaming\npm\node_modules\azure-functions-core-tools\bin\workers\python\3.10\WINDOWS\X64\azure_functions_worker\dispatcher.py", line 475, in _handle__functions_metadata_request
+    self.load_function_metadata(
+  File "C:\Users\Administrator\AppData\Roaming\npm\node_modules\azure-functions-core-tools\bin\workers\python\3.10\WINDOWS\X64\azure_functions_worker\dispatcher.py", line 455, in load_function_metadata
+    self.index_functions(function_path, function_app_directory)) \
+  File "C:\Users\Administrator\AppData\Roaming\npm\node_modules\azure-functions-core-tools\bin\workers\python\3.10\WINDOWS\X64\azure_functions_worker\dispatcher.py", line 833, in index_functions
+    indexed_functions = loader.index_function_app(function_path)
+  File "C:\Users\Administrator\AppData\Roaming\npm\node_modules\azure-functions-core-tools\bin\workers\python\3.10\WINDOWS\X64\azure_functions_worker\utils\wrappers.py", line 44, in call
+    return func(*args, **kwargs)
+  File "C:\Users\Administrator\AppData\Roaming\npm\node_modules\azure-functions-core-tools\bin\workers\python\3.10\WINDOWS\X64\azure_functions_worker\loader.py", line 261, in index_function_app
+    raise ValueError("Could not find top level function app instances in "
+.
+[2025-03-31T12:39:30.882Z] No job functions found. Try making your job classes and methods public. If you're using binding extensions (e.g. Azure Storage, ServiceBus, Timers, etc.) make sure you've called the registration method for the extension(s) in your startup code (e.g. builder.AddAzureStorage(), builder.AddServiceBus(), builder.AddTimers(), etc.).
