@@ -1,0 +1,55 @@
+import logging
+import os
+import tempfile
+
+import azure.functions as func
+from azure.storage.blob import BlobServiceClient
+from PyPDF2 import PdfReader
+
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.chat_models import ChatOpenAI
+from langchain.chains.summarize import load_summarize_chain
+
+
+@func.FunctionName(name="PdfBlobTrigger")
+@func.blob_trigger(arg_name="blob",
+                   path="uploads/{name}",
+                   connection="AzureWebJobsStorage")
+def main(blob: func.InputStream):
+    logging.info(f"Processing uploaded file: {blob.name}")
+
+    # Save blob to temporary PDF file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+        temp_pdf.write(blob.read())
+        temp_pdf_path = temp_pdf.name
+
+    # Extract text from PDF
+    reader = PdfReader(temp_pdf_path)
+    full_text = "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+
+    if not full_text.strip():
+        logging.warning("No text found in PDF.")
+        return
+
+    # Split into LangChain documents
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    docs = splitter.create_documents([full_text])
+
+    # Summarize using LangChain + Groq API
+    llm = ChatOpenAI(
+        model="mixtral-8x7b-32768",  # You can try "llama2-70b-4096" or "gemma-7b-it" as well
+        openai_api_base="https://api.groq.com/openai/v1",
+        openai_api_key=os.environ["GROQ_API_KEY"],
+        temperature=0.5
+    )
+
+    chain = load_summarize_chain(llm, chain_type="stuff")
+    summary = chain.run(docs)
+
+    # Upload summary to summaries container
+    output_blob_name = os.path.basename(blob.name).replace(".pdf", "_summary.txt")
+    blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
+    summaries_container = blob_service.get_container_client("summaries")
+    summaries_container.upload_blob(output_blob_name, summary.encode("utf-8"), overwrite=True)
+
+    logging.info(f"Summary uploaded to 'summaries/{output_blob_name}'")
