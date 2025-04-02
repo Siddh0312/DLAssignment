@@ -1,0 +1,42 @@
+trigger:
+  branches:
+    include:
+      - master     # or 'main' if that's your default branch
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureFunctionApp: 'YourAzureFunctionAppName'     # Replace this
+  azureSubscription: 'YourServiceConnectionName'   # Replace this
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.10'
+
+- script: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+  displayName: 'Install dependencies'
+
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/functionapp.zip'
+    replaceExistingArchive: true
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/functionapp.zip'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
+- task: AzureFunctionApp@2
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    appType: 'functionAppLinux'
+    appName: '$(azureFunctionApp)'
+    package: '$(Pipeline.Workspace)/drop/functionapp.zip'
